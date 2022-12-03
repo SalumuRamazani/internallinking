@@ -1,0 +1,43 @@
+import streamlit as st
+import requests
+from bs4 import BeautifulSoup
+import networkx as nx
+import matplotlib.pyplot as plt
+
+st.title("Internal Linking Graph Tool")
+
+# Prompt the user to enter the URL of the website to analyze
+url = st.text_input("Enter the URL of the website to analyze: ")
+
+# Fetch and parse the HTML code of the website
+soup = BeautifulSoup(requests.get(url).text, "html.parser")
+
+# Extract the internal links from the HTML code
+internal_links = [(link.text, link.get("href"))
+                  for link in soup.find_all("a")
+                  if link.get("href").startswith("/") and not link.get("href").startswith("//")]
+
+# Generate a visual representation of the internal linking structure
+G = nx.DiGraph()
+[G.add_edge(link_text, link_href) for link_text, link_href in internal_links]
+
+# Draw the graph using matplotlib
+plt.figure(figsize=(8, 8))
+nx.draw(G, with_labels=True, font_size=8)
+st.pyplot()
+
+# Prompt the user to interact with the internal linking graph
+action = st.selectbox("Choose an action:", ["Hover", "Click", "Exit"])
+if action == "Exit":
+    st.success("Exiting the app.")
+elif action == "Hover":
+    link_text = st.text_input("Enter the link text to hover over:")
+    for i, (lt, lh) in enumerate(internal_links):
+        if lt == link_text:
+            st.success("Hovered over link {}: {} ({})".format(i, lt, lh))
+            break
+elif action == "Click":
+    link_index = st.number_input("Enter the link index to click:")
+    if link_index >= 0 and link_index < len(internal_links):
+        link_text, link_href = internal_links[link_index]
+        st.success("Clicked on link {}: {} ({})".format(link_index, link_text, link_href))
